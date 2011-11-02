@@ -376,7 +376,6 @@ static int preinit(InputDriverPtr drv, InputInfoPtr pInfo, int flags)
 		goto error;
 	}
 
-	//pInfo->name = dev->identifier;
 	pInfo->type_name = XI_TOUCHSCREEN;
 	pInfo->device_control = device_control;
 	pInfo->read_input = read_input;
@@ -387,15 +386,13 @@ static int preinit(InputDriverPtr drv, InputInfoPtr pInfo, int flags)
 	//pInfo->conf_idev = dev;
 
 	//xf86CollectInputOptions(local, NULL, NULL);
-	//xf86OptionListReport(local->options);
+	xf86OptionListReport(pInfo->options);
 	//xf86ProcessCommonOptions(local, local->options);
 
 
 	mt->swap_xy = xf86SetBoolOption(pInfo->options, "SwapAxes", FALSE);
 	mt->invert_x = xf86SetBoolOption(pInfo->options, "InvertX", FALSE);
 	mt->invert_y = xf86SetBoolOption(pInfo->options, "InvertY", FALSE);
-
-	//local->flags |= XI86_CONFIGURED;
 
 error:
 	return rc;
