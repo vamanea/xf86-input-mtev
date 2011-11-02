@@ -60,7 +60,6 @@ const struct input_event* mtouch_read_event(struct mtev_mtouch *mt, int fd)
 
 	if (mt->num_events_read >= mt->num_events) {
 		int n;
-
 		SYSCALL(n = read(fd, mt->ev, MAX_EVENTS * sizeof(struct input_event)));
 		if (n <= 0)
 			return NULL;

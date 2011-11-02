@@ -114,7 +114,7 @@ static int init_properties(DeviceIntPtr dev)
 	return Success;
 }
 
-static int device_init(DeviceIntPtr dev, LocalDevicePtr local)
+static int device_init(DeviceIntPtr dev, InputInfoPtr local)
 {
 	struct mtev_mtouch *mt = local->private;
 	Atom atom;
@@ -222,7 +222,7 @@ static int device_init(DeviceIntPtr dev, LocalDevicePtr local)
 			xf86InitValuatorAxisStruct(dev, val, axes_labels[val],
 						   min,
 						   max,
-						   1, 0, 1);
+						   1, 0, 1, Absolute);
 			xf86InitValuatorDefaults(dev, val);
 		}
 	}
@@ -232,7 +232,7 @@ static int device_init(DeviceIntPtr dev, LocalDevicePtr local)
 	return Success;
 }
 
-static int device_on(LocalDevicePtr local)
+static int device_on(InputInfoPtr local)
 {
 	struct mtev_mtouch *mt = local->private;
 	local->fd = xf86OpenSerial(local->options);
@@ -248,7 +248,7 @@ static int device_on(LocalDevicePtr local)
 	return Success;
 }
 
-static int device_off(LocalDevicePtr local)
+static int device_off(InputInfoPtr local)
 {
 	struct mtev_mtouch *mt = local->private;
 	xf86RemoveEnabledDevice(local);
@@ -259,12 +259,12 @@ static int device_off(LocalDevicePtr local)
 	return Success;
 }
 
-static int device_close(LocalDevicePtr local)
+static int device_close(InputInfoPtr local)
 {
 	return Success;
 }
 
-static void process_state(LocalDevicePtr local,
+static void process_state(InputInfoPtr local,
 			  const struct mtev_mtouch *mt)
 {
 
@@ -336,7 +336,7 @@ static void process_state(LocalDevicePtr local,
 }
 
 /* called for each full received packet from the touchpad */
-static void read_input(LocalDevicePtr local)
+static void read_input(InputInfoPtr local)
 {
 	struct mtev_mtouch *mt = local->private;
 	while (mtouch_read_synchronized_event(mt, local->fd)) {
@@ -346,7 +346,7 @@ static void read_input(LocalDevicePtr local)
 
 static Bool device_control(DeviceIntPtr dev, int mode)
 {
-	LocalDevicePtr local = dev->public.devicePrivate;
+	InputInfoPtr local = dev->public.devicePrivate;
 	switch (mode) {
 	case DEVICE_INIT:
 		xf86Msg(X_INFO, "device control: init\n");
@@ -366,39 +366,39 @@ static Bool device_control(DeviceIntPtr dev, int mode)
 	}
 }
 
-static InputInfoPtr preinit(InputDriverPtr drv, IDevPtr dev, int flags)
+static int preinit(InputDriverPtr drv, InputInfoPtr pInfo, int flags)
 {
 	struct mtev_mtouch *mt;
-	InputInfoPtr local = xf86AllocateInput(drv, 0);
-	if (!local)
-		goto error;
+	int rc = Success;
 	mt = calloc(1, sizeof(struct mtev_mtouch));
-	if (!mt)
+	if (!mt) {
+		rc = BadValue;
 		goto error;
+	}
 
-	local->name = dev->identifier;
-	local->type_name = XI_TOUCHSCREEN;
-	local->device_control = device_control;
-	local->read_input = read_input;
-	local->private = mt;
-	local->flags = XI86_POINTER_CAPABLE |
-		XI86_SEND_DRAG_EVENTS;
+	//pInfo->name = dev->identifier;
+	pInfo->type_name = XI_TOUCHSCREEN;
+	pInfo->device_control = device_control;
+	pInfo->read_input = read_input;
+	pInfo->private = mt;
+	/*pInfo->flags = XI86_POINTER_CAPABLE |
+		XI86_SEND_DRAG_EVENTS;*/
 
-	local->conf_idev = dev;
+	//pInfo->conf_idev = dev;
 
-	xf86CollectInputOptions(local, NULL, NULL);
+	//xf86CollectInputOptions(local, NULL, NULL);
 	//xf86OptionListReport(local->options);
-	xf86ProcessCommonOptions(local, local->options);
+	//xf86ProcessCommonOptions(local, local->options);
 
 
-	mt->swap_xy = xf86SetBoolOption(local->options, "SwapAxes", FALSE);
-	mt->invert_x = xf86SetBoolOption(local->options, "InvertX", FALSE);
-	mt->invert_y = xf86SetBoolOption(local->options, "InvertY", FALSE);
+	mt->swap_xy = xf86SetBoolOption(pInfo->options, "SwapAxes", FALSE);
+	mt->invert_x = xf86SetBoolOption(pInfo->options, "InvertX", FALSE);
+	mt->invert_y = xf86SetBoolOption(pInfo->options, "InvertY", FALSE);
 
-	local->flags |= XI86_CONFIGURED;
+	//local->flags |= XI86_CONFIGURED;
 
 error:
-	return local;
+	return rc;
 }
 
 static void uninit(InputDriverPtr drv, InputInfoPtr local, int flags)
@@ -414,8 +414,7 @@ static InputDriverRec MTEV = {
 	.Identify = NULL,
 	.PreInit = preinit,
 	.UnInit = uninit,
-	.module = NULL,
-	.refCount = 0
+	.module = NULL
 };
 
 static XF86ModuleVersionInfo VERSION = {
